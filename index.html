@@ -8,13 +8,13 @@
 <meta name="theme-color" content="#0B120F" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="測距測角">
-<meta name="description" content="輸入兩點座標與高度，計算水平距離、水平角、仰角、FSL 與視距。">
+<meta name="apple-mobile-web-app-title" content="工具">
+<meta name="description" content="兩點距離角度、自由空間路徑損耗(FSL)、射頻視距(LOS) 計算。">
 <meta property="og:type" content="website">
-<meta property="og:title" content="兩點測距測角">
-<meta property="og:description" content="輸入兩點座標與高度，計算水平距離、水平角、仰角、FSL 與視距。">
+<meta property="og:title" content="工具">
+<meta property="og:description" content="兩點距離角度、自由空間路徑損耗(FSL)、射頻視距(LOS) 計算。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2040%2040%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2218%22%20fill%3D%22%230B6B4E%22/%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2210.5%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.8%22/%3E%3Cpath%20d%3D%22M20%205.5v8M20%2026.5v8M5.5%2020h8M26.5%2020h8%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22/%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%222%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
-<title>兩點測距測角</title>
+<title>工具</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -85,7 +85,7 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
 .big small{margin-left:5px;font:500 13px/1 var(--ui);letter-spacing:0;color:var(--muted)}
 
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin:12px 0;border-radius:12px;background:var(--seg)}
-.tab{min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14.5px;font-weight:600;cursor:pointer}
+.tab{min-height:40px;padding:6px 4px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;font-weight:600;line-height:1.25;word-break:keep-all;overflow-wrap:break-word;cursor:pointer}
 .tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .tab:focus-visible,.seg button:focus-visible,.sync:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .fr{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px}
@@ -110,11 +110,11 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
 </head>
 <body>
 <div class="app" lang="zh-Hant">
-  <h1>兩點測距測角</h1>
+  <h1>工具</h1>
   <div class="tabs" role="tablist" aria-label="功能切換">
-    <button type="button" class="tab" role="tab" id="tabGeo" aria-controls="panelGeo" aria-selected="true">測距測角</button>
-    <button type="button" class="tab" role="tab" id="tabFsl" aria-controls="panelFsl" aria-selected="false">FSL</button>
-    <button type="button" class="tab" role="tab" id="tabLos" aria-controls="panelLos" aria-selected="false">LOS</button>
+    <button type="button" class="tab" role="tab" id="tabGeo" aria-controls="panelGeo" aria-selected="true">兩點距離<wbr>角度</button>
+    <button type="button" class="tab" role="tab" id="tabFsl" aria-controls="panelFsl" aria-selected="false">自由空間<wbr>路徑損耗<wbr>(FSL)</button>
+    <button type="button" class="tab" role="tab" id="tabLos" aria-controls="panelLos" aria-selected="false">射頻視距<wbr>(LOS)</button>
   </div>
 
   <div id="panelGeo" role="tabpanel" aria-labelledby="tabGeo">
@@ -176,7 +176,7 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
   </div>
 
   <div id="panelFsl" role="tabpanel" aria-labelledby="tabFsl" hidden>
-    <p class="hint">自由空間損耗（Free Space Loss）。距離會自動帶入 A–B 直線距離，也可自行輸入。</p>
+    <p class="hint">自由空間路徑損耗（Free Space Path Loss）。距離會自動帶入 A–B 直線距離，也可自行輸入。</p>
     <div class="card">
       <section class="pt">
         <div class="fr">
@@ -202,7 +202,7 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
   </div>
 
   <div id="panelLos" role="tabpanel" aria-labelledby="tabLos" hidden>
-    <p class="hint">以 k = 4/3（無線電標準大氣）計算兩點間的最大視距。高度自動帶入測距測角，也可自行修改。</p>
+    <p class="hint">以 k = 4/3（無線電標準大氣）計算兩點間的最大視距。高度自動帶入「兩點距離角度」，也可自行修改。</p>
     <div class="card">
       <section class="pt">
         <div class="two">
@@ -722,7 +722,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
   /* ---------- LOS 視距（k = 4/3） ---------- */
   var LS = { hA: $('losHA'), hB: $('losHB'), sync: $('losSync'), note: $('losNote'), man: { hA: false, hB: false } };
   var LKEYS = ['hA', 'hB'];
-  var lastHA = NaN, lastHB = NaN;   // 測距測角的兩點高度（m）
+  var lastHA = NaN, lastHB = NaN;   // 兩點距離角度頁的兩點高度（m）
   var RE = 6371000 * 4 / 3;         // 等效地球半徑
   function syncLos() {
     var src = { hA: lastHA, hB: lastHB }, anyMan = false;
@@ -732,7 +732,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
     });
     var have = isFinite(lastHA);
     LS.sync.hidden = !(anyMan && have);
-    LS.note.textContent = anyMan ? '含手動輸入的高度' : have ? '高度取自測距測角' : '尚未輸入 A、B 兩點，可直接填高度';
+    LS.note.textContent = anyMan ? '含手動輸入的高度' : have ? '高度取自兩點距離角度' : '尚未輸入 A、B 兩點，可直接填高度';
     computeLos();
   }
   function computeLos() {
