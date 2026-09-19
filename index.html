@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#EDF1ED" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B120F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="測距測角">
+<meta name="description" content="輸入兩點座標與高度，計算水平距離、水平角、仰角、FSL 與視距。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="兩點測距測角">
+<meta property="og:description" content="輸入兩點座標與高度，計算水平距離、水平角、仰角、FSL 與視距。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2040%2040%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2218%22%20fill%3D%22%230B6B4E%22/%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2210.5%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.8%22/%3E%3Cpath%20d%3D%22M20%205.5v8M20%2026.5v8M5.5%2020h8M26.5%2020h8%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22/%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%222%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
+<title>兩點測距測角</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EDF1ED; --card:#FBFCFA; --ink:#142019; --muted:#59665E; --faint:#8A958E; --rule:#D6DDD7;
+  --field:#FFFFFF; --field-rule:#C4CEC7; --accent:#0B6B4E; --focus:rgba(11,107,78,.22);
+  --err:#B42318; --err-ring:rgba(180,35,24,.16); --a:#2455C8; --b:#BF4516; --on-tag:#FFFFFF;
+  --res:#E4EFE8; --res-rule:#CADDD1; --seg:#DDE5DF;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B120F; --card:#121B16; --ink:#E2EAE4; --muted:#9AA89F; --faint:#6F7D74; --rule:#243129;
+    --field:#0E1612; --field-rule:#304036; --accent:#3DBB8B; --focus:rgba(61,187,139,.3);
+    --err:#FF7C70; --err-ring:rgba(255,124,112,.2); --a:#8CA9FF; --b:#FF935F; --on-tag:#0A1220;
+    --res:#0F201A; --res-rule:#22392F; --seg:#1A2620;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B120F; --card:#121B16; --ink:#E2EAE4; --muted:#9AA89F; --faint:#6F7D74; --rule:#243129;
+  --field:#0E1612; --field-rule:#304036; --accent:#3DBB8B; --focus:rgba(61,187,139,.3);
+  --err:#FF7C70; --err-ring:rgba(255,124,112,.2); --a:#8CA9FF; --b:#FF935F; --on-tag:#0A1220;
+  --res:#0F201A; --res-rule:#22392F; --seg:#1A2620;
+  color-scheme:dark;
+}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--ui)}
+[hidden]{display:none!important}
+input,button{font:inherit}
+
+.app{max-width:540px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:22px 32px}
+h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
+.hint{margin:4px 0 16px;font-size:13px;line-height:1.5;color:var(--muted)}
+
+.card{background:var(--card);border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.pt{display:grid;gap:8px;padding:14px 16px}
+.pt+.pt{border-top:1px solid var(--rule)}
+.pt-head{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.pt-head .note{margin-left:auto;font-size:12.5px;font-weight:400;color:var(--muted)}
+.tag{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;font:600 14px/1 var(--mono);color:var(--on-tag)}
+.tag-a{background:var(--a)} .tag-b{background:var(--b)}
+
+.ln{display:grid;grid-template-columns:34px minmax(0,1fr) 10px minmax(0,.8fr) 10px minmax(0,1.2fr) 10px 40px;align-items:center;gap:4px}
+.ln-h{grid-template-columns:34px minmax(0,186px)}
+.ax{font-size:13px;color:var(--muted)}
+.sym{font:500 16px/1 var(--mono);color:var(--faint);text-align:center}
+.in{display:block;width:100%;min-width:0;padding:9px 6px;border:1px solid var(--field-rule);border-radius:9px;background:var(--field);color:var(--ink);font:500 16px/1.3 var(--mono);text-align:center;-webkit-appearance:none;appearance:none}
+.in::placeholder{color:var(--faint);font-weight:400}
+.in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
+.in.bad{border-color:var(--err);box-shadow:0 0 0 3px var(--err-ring)}
+.hemi{align-self:stretch;min-height:40px;padding:0;border:1px solid var(--field-rule);border-radius:9px;background:var(--field);color:var(--accent);font:600 15px/1 var(--mono);cursor:pointer}
+.hemi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hw{position:relative}
+.hw .in{text-align:left;padding:9px 34px 9px 10px}
+.hw .u{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:400 13px/1 var(--mono);color:var(--faint);pointer-events:none}
+.err{margin:0;font-size:12.5px;line-height:1.4;color:var(--err)}
+
+.res{background:var(--res);border-top:1px solid var(--rule);padding:2px 16px}
+.r{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 0}
+.r+.r{border-top:1px solid var(--res-rule)}
+.r-k{flex:none;font-size:14px;color:var(--muted)}
+.big{font:600 25px/1.15 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.big small{margin-left:5px;font:500 13px/1 var(--ui);letter-spacing:0;color:var(--muted)}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin:12px 0;border-radius:12px;background:var(--seg)}
+.tab{min-height:38px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14.5px;font-weight:600;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tab:focus-visible,.seg button:focus-visible,.sync:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.fr{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px}
+.in-l{text-align:left;padding-inline:10px}
+.seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:var(--seg)}
+.seg button{min-width:52px;min-height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:600 13px/1 var(--mono);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.sync{min-height:38px;padding:0 12px;border:1px solid var(--field-rule);border-radius:9px;background:var(--field);color:var(--accent);font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
+.sub{margin:0;font-size:12.5px;line-height:1.4;color:var(--muted)}
+.formula{margin:10px 2px 0;font:400 12.5px/1.5 var(--mono);color:var(--faint)}
+.note-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:grid;gap:4px}
+
+@media (max-width:359px){
+  .pt{padding:12px}
+  .ln{grid-template-columns:30px minmax(0,1fr) 8px minmax(0,.8fr) 8px minmax(0,1.2fr) 8px 34px;gap:3px}
+  .ln-h{grid-template-columns:30px minmax(0,170px)}
+  .in{padding:8px 3px}
+}
+</style>
+</head>
+<body>
+<div class="app" lang="zh-Hant">
+  <h1>兩點測距測角</h1>
+  <div class="tabs" role="tablist" aria-label="功能切換">
+    <button type="button" class="tab" role="tab" id="tabGeo" aria-controls="panelGeo" aria-selected="true">測距測角</button>
+    <button type="button" class="tab" role="tab" id="tabFsl" aria-controls="panelFsl" aria-selected="false">FSL</button>
+    <button type="button" class="tab" role="tab" id="tabLos" aria-controls="panelLos" aria-selected="false">LOS</button>
+  </div>
+
+  <div id="panelGeo" role="tabpanel" aria-labelledby="tabGeo">
+  <p class="hint">可在任一格直接貼上 Google 地圖座標，會自動換算成度分秒；高度填海拔公尺。</p>
+
+  <div class="card">
+    <section class="pt" aria-label="A 測站">
+      <div class="pt-head"><span class="tag tag-a" aria-hidden="true">A</span>測站<span class="note" id="noteA"></span></div>
+      <div class="ln">
+        <span class="ax">緯度</span>
+        <input class="in" id="latDA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="A 緯度 度" placeholder="度"><span class="sym">°</span>
+        <input class="in" id="latMA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="A 緯度 分" placeholder="分"><span class="sym">′</span>
+        <input class="in" id="latSA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="A 緯度 秒" placeholder="秒"><span class="sym">″</span>
+        <button type="button" class="hemi" id="latHA" aria-label="A 北緯／南緯切換">N</button>
+      </div>
+      <div class="ln">
+        <span class="ax">經度</span>
+        <input class="in" id="lonDA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="A 經度 度" placeholder="度"><span class="sym">°</span>
+        <input class="in" id="lonMA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="A 經度 分" placeholder="分"><span class="sym">′</span>
+        <input class="in" id="lonSA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="A 經度 秒" placeholder="秒"><span class="sym">″</span>
+        <button type="button" class="hemi" id="lonHA" aria-label="A 東經／西經切換">E</button>
+      </div>
+      <div class="ln ln-h">
+        <label class="ax" for="hA">高度</label>
+        <div class="hw"><input class="in" id="hA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="0"><span class="u">m</span></div>
+      </div>
+      <p class="err" id="errA" hidden></p>
+    </section>
+
+    <section class="pt" aria-label="B 目標">
+      <div class="pt-head"><span class="tag tag-b" aria-hidden="true">B</span>目標<span class="note" id="noteB"></span></div>
+      <div class="ln">
+        <span class="ax">緯度</span>
+        <input class="in" id="latDB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="B 緯度 度" placeholder="度"><span class="sym">°</span>
+        <input class="in" id="latMB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="B 緯度 分" placeholder="分"><span class="sym">′</span>
+        <input class="in" id="latSB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="B 緯度 秒" placeholder="秒"><span class="sym">″</span>
+        <button type="button" class="hemi" id="latHB" aria-label="B 北緯／南緯切換">N</button>
+      </div>
+      <div class="ln">
+        <span class="ax">經度</span>
+        <input class="in" id="lonDB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="B 經度 度" placeholder="度"><span class="sym">°</span>
+        <input class="in" id="lonMB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="B 經度 分" placeholder="分"><span class="sym">′</span>
+        <input class="in" id="lonSB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" aria-label="B 經度 秒" placeholder="秒"><span class="sym">″</span>
+        <button type="button" class="hemi" id="lonHB" aria-label="B 東經／西經切換">E</button>
+      </div>
+      <div class="ln ln-h">
+        <label class="ax" for="hB">高度</label>
+        <div class="hw"><input class="in" id="hB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0"><span class="u">m</span></div>
+      </div>
+      <p class="err" id="errB" hidden></p>
+    </section>
+
+    <section class="res" aria-label="計算結果">
+      <div class="r"><span class="r-k">水平距離</span><div class="big" id="outD">—</div></div>
+      <div class="r"><span class="r-k">水平角</span><div class="big" id="outH">—</div></div>
+      <div class="r"><span class="r-k">仰角</span><div class="big" id="outV">—</div></div>
+    </section>
+  </div>
+  </div>
+
+  <div id="panelFsl" role="tabpanel" aria-labelledby="tabFsl" hidden>
+    <p class="hint">自由空間損耗（Free Space Loss）。距離會自動帶入 A–B 直線距離，也可自行輸入。</p>
+    <div class="card">
+      <section class="pt">
+        <div class="fr">
+          <label class="ax" for="fslF">頻率</label>
+          <input class="in in-l" id="fslF" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="0">
+          <div class="seg" role="group" aria-label="頻率單位">
+            <button type="button" id="unitMHz" aria-pressed="false">MHz</button>
+            <button type="button" id="unitGHz" aria-pressed="true">GHz</button>
+          </div>
+        </div>
+        <div class="fr">
+          <label class="ax" for="fslD">距離</label>
+          <div class="hw"><input class="in" id="fslD" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0"><span class="u">km</span></div>
+          <button type="button" class="sync" id="fslSync" hidden>帶入 A–B</button>
+        </div>
+        <p class="sub" id="fslNote"></p>
+      </section>
+      <section class="res" aria-label="FSL 結果">
+        <div class="r"><span class="r-k">FSL</span><div class="big" id="outF">—</div></div>
+      </section>
+    </div>
+    <p class="formula">FSL = 32.45 + 20log₁₀f(MHz) + 20log₁₀d(km)</p>
+  </div>
+
+  <div id="panelLos" role="tabpanel" aria-labelledby="tabLos" hidden>
+    <p class="hint">以 k = 4/3（無線電標準大氣）計算兩點間的最大視距。高度自動帶入測距測角，也可自行修改。</p>
+    <div class="card">
+      <section class="pt">
+        <div class="two">
+          <div class="fld"><label class="ax" for="losHA">A 高度</label><div class="hw"><input class="in" id="losHA" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="0"><span class="u">m</span></div></div>
+          <div class="fld"><label class="ax" for="losHB">B 高度</label><div class="hw"><input class="in" id="losHB" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0"><span class="u">m</span></div></div>
+        </div>
+        <div class="note-row"><p class="sub" id="losNote"></p><button type="button" class="sync" id="losSync" hidden>帶入 A–B</button></div>
+      </section>
+      <section class="res" aria-label="LOS 結果">
+        <div class="r"><span class="r-k">視距</span><div class="big" id="losR">—</div></div>
+      </section>
+    </div>
+    <p class="formula">視距 = 4.12(√h₁+√h₂) km（h 單位 m）</p>
+  </div>
+</div>
+
+<script>
+/* GeoCore — 座標解析 + WGS84 大地計算（不依賴 DOM） */
+var GeoCore = (function () {
+  'use strict';
+
+  var A = 6378137, F = 1 / 298.257223563, B = A * (1 - F), E2 = F * (2 - F);
+  var D2R = Math.PI / 180, R2D = 180 / Math.PI, R_MEAN = 6371008.8;
+
+  function norm360(x) { x = x % 360; return x < 0 ? x + 360 : x; }
+  function wrapPi(x) { while (x > Math.PI) x -= 2 * Math.PI; while (x < -Math.PI) x += 2 * Math.PI; return x; }
+
+  /* ================= 解析 ================= */
+
+  var SLOT = { '°': 0, "'": 1, '"': 2 };
+
+  function fail(msg) { return { ok: false, error: msg }; }
+
+  function toHalf(s) {
+    return String(s)
+      .replace(/[！-～]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+      .replace(/[　  -  ]/g, ' ')
+      .replace(/[​-‍﻿]/g, '');
+  }
+
+  function normalize(raw) {
+    var t = toHalf(raw).replace(/、/g, ',');
+    t = t.replace(/[經经][緯纬]度?|[緯纬][經经]度?/g, ' ')
+         .replace(/北[緯纬]/g, ' N ').replace(/南[緯纬]/g, ' S ')
+         .replace(/[東东][經经]/g, ' E ').replace(/西[經经]/g, ' W ')
+         .replace(/[緯纬]度?/g, ' LAT ').replace(/[經经]度?/g, ' LON ')
+         .replace(/度/g, '°').replace(/分/g, "'").replace(/秒/g, '"')
+         .replace(/[⺀-鿿豈-﫿가-힯぀-ヿ]+/g, ' ');
+    t = t.replace(/[º˚∘]/g, '°')
+         .replace(/[′‘’‛´`ʹʼ]/g, "'")
+         .replace(/[″“”‟ʺ〃]/g, '"')
+         .replace(/''/g, '"')
+         .replace(/[−﹣]/g, '-');
+    return t.toUpperCase()
+      .replace(/\bNORTH\b/g, ' N ').replace(/\bSOUTH\b/g, ' S ')
+      .replace(/\bEAST\b/g, ' E ').replace(/\bWEST\b/g, ' W ');
+  }
+
+  function tokenize(t) {
+    var re = /(-?)(\d+(?:\.\d*)?|\.\d+)\s*([°'"])?|([A-Z]+)|([,;\/|\n])/g, out = [], m;
+    while ((m = re.exec(t)) !== null) {
+      if (m[2] !== undefined) {
+        var neg = m[1] === '-';
+        if (neg && m.index > 0 && /[\d.]/.test(t.charAt(m.index - 1))) neg = false; // 25.03-121.56 的連字號不是負號
+        out.push({ k: 'num', s: m[2], v: parseFloat(m[2]), neg: neg, mk: m[3] || '' });
+      } else if (m[4] !== undefined) {
+        out.push(/^[NSEW]$/.test(m[4]) ? { k: 'hemi', v: m[4] } : { k: 'word', v: m[4] });
+      } else if (m[5] !== undefined) {
+        out.push({ k: 'sep' });
+      }
+    }
+    return out;
+  }
+
+  function plainGroup(nums) {
+    return { nums: nums.map(function (n, i) { return { v: n.v, s: n.s, neg: n.neg, mk: n.mk, slot: i }; }), hemi: '', label: '' };
+  }
+
+  function groupTokens(toks) {
+    var groups = [], cur = null, label = '';
+    function start() { cur = { nums: [], hemi: '', pre: false, label: label }; label = ''; }
+    function flush() { if (cur && cur.nums.length) groups.push(cur); cur = null; }
+    for (var i = 0; i < toks.length; i++) {
+      var tk = toks[i];
+      if (tk.k === 'sep') { if (cur && cur.nums.length) flush(); continue; }
+      if (tk.k === 'word') {
+        if (cur && cur.nums.length) flush();
+        if (/^LAT/.test(tk.v)) label = 'lat';
+        else if (/^(LON|LNG)/.test(tk.v)) label = 'lon';
+        continue;
+      }
+      if (tk.k === 'hemi') {
+        if (!cur) { start(); cur.hemi = tk.v; cur.pre = true; continue; }
+        if (!cur.nums.length) { if (cur.hemi) return null; cur.hemi = tk.v; cur.pre = true; continue; }
+        if (cur.pre) { flush(); start(); cur.hemi = tk.v; cur.pre = true; continue; }
+        cur.hemi = tk.v; flush(); continue;
+      }
+      if (cur && cur.nums.length) {
+        var last = cur.nums[cur.nums.length - 1];
+        var cont = tk.mk ? SLOT[tk.mk] > last.slot : last.slot < 2;
+        if (tk.neg) cont = false;
+        if (!cont) flush();
+      }
+      if (!cur) start();
+      var prev = cur.nums.length ? cur.nums[cur.nums.length - 1].slot : -1;
+      var slot = tk.mk ? SLOT[tk.mk] : prev + 1;
+      if (slot > 2 || slot <= prev) return null;
+      cur.nums.push({ v: tk.v, s: tk.s, neg: tk.neg, mk: tk.mk, slot: slot });
+    }
+    flush();
+    return groups;
+  }
+
+  function groupValue(g) {
+    var n = g.nums, d = 0, m = 0, s = 0, neg = false;
+    if (!n.length || n[0].slot !== 0) return NaN;
+    for (var i = 0; i < n.length; i++) {
+      if (n[i].neg) { if (i > 0) return NaN; neg = true; }
+      if (n[i].slot === 0) d = n[i].v; else if (n[i].slot === 1) m = n[i].v; else s = n[i].v;
+    }
+    if (n.length > 1) {
+      if (m >= 60 || s >= 60 || Math.floor(d) !== d) return NaN;
+      if (s && Math.floor(m) !== m) return NaN;
+    }
+    var v = d + m / 60 + s / 3600;
+    if (neg) v = -v;
+    if (g.hemi === 'S' || g.hemi === 'W') v = -Math.abs(v);
+    return v;
+  }
+
+  function finalize(lat, lon, note) {
+    if (!isFinite(lat) || !isFinite(lon)) return fail('無法辨識座標');
+    if (Math.abs(lat) > 90) return fail('緯度超出 ±90° 範圍');
+    if (lon > 180 && lon <= 360) lon -= 360;
+    if (Math.abs(lon) > 180) return fail('經度超出 ±180° 範圍');
+    return { ok: true, lat: lat, lon: lon, note: note || '' };
+  }
+
+  function byMagnitude(v1, v2) {
+    if (Math.abs(v1) > 90 && Math.abs(v2) <= 90) return finalize(v2, v1, '判斷為「經度, 緯度」順序，已自動對調');
+    return finalize(v1, v2, '');
+  }
+
+  function assign(g1, v1, g2, v2) {
+    function kind(g) {
+      if (g.hemi === 'N' || g.hemi === 'S') return 'lat';
+      if (g.hemi === 'E' || g.hemi === 'W') return 'lon';
+      return g.label || '';
+    }
+    var k1 = kind(g1), k2 = kind(g2);
+    if (k1 && k1 === k2) return fail(k1 === 'lat' ? '兩個數值都標示為緯度' : '兩個數值都標示為經度');
+    if (k1 === 'lon' || k2 === 'lat') return finalize(v2, v1, '');
+    if (k1 === 'lat' || k2 === 'lon') return finalize(v1, v2, '');
+    return byMagnitude(v1, v2);
+  }
+
+  // 最常見的「緯度, 經度」十進位格式，允許前後夾雜文字（如地點名稱）
+  function quickPairs(t) {
+    var re = /(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/g, m, found = [];
+    while ((m = re.exec(t)) !== null) {
+      var before = t.slice(0, m.index), after = t.slice(m.index + m[0].length);
+      if (/[\d.]$/.test(before) || /[°'"]\s*$/.test(before) || /(^|[^A-Z])[NSEW]\s*$/.test(before)) continue;
+      if (/^[\d.]/.test(after) || /^\s*[°'"]/.test(after) || /^\s*[NSEW](?![A-Z])/.test(after)) continue;
+      found.push([parseFloat(m[1]), parseFloat(m[2])]);
+    }
+    return found;
+  }
+
+  function parsePlain(text) {
+    var t = normalize(text);
+    if (t.indexOf('°') < 0) t = t.replace(/["']/g, ' ');
+    var dc = t.match(/^\s*(-?\d{1,3}),(\d{3,})\s*[;\s]\s*(-?\d{1,3}),(\d{3,})\s*$/);
+    if (dc) t = dc[1] + '.' + dc[2] + ' ' + dc[3] + '.' + dc[4];
+
+    var q = quickPairs(t);
+    if (q.length) {
+      var r = byMagnitude(q[0][0], q[0][1]);
+      if (r.ok) {
+        if (q.length > 1) r.note = (r.note ? r.note + '；' : '') + '偵測到多組座標，使用第一組';
+        return r;
+      }
+    }
+
+    var toks = tokenize(t);
+    var nums = toks.filter(function (x) { return x.k === 'num'; });
+    if (nums.length < 2) return fail(nums.length ? '只找到一個數值，需要緯度與經度' : '找不到座標數字');
+    var hasSep = false, hasHemi = false, hasMk = false, hasDec = false;
+    toks.forEach(function (x) {
+      if (x.k === 'sep' || x.k === 'word') hasSep = true;
+      if (x.k === 'hemi') hasHemi = true;
+      if (x.mk) hasMk = true;
+      if (x.k === 'num' && x.s.indexOf('.') >= 0) hasDec = true;
+    });
+    if (!hasMk && !hasHemi && !hasDec && nums.length < 4) return fail('看起來不是座標（需含小數點或度分秒）');
+
+    var groups;
+    if (!hasSep && !hasHemi && !hasMk) {
+      if (nums.length !== 2 && nums.length !== 4 && nums.length !== 6) return fail('無法辨識的數字組合');
+      var k = nums.length / 2;
+      groups = [plainGroup(nums.slice(0, k)), plainGroup(nums.slice(k))];
+    } else {
+      groups = groupTokens(toks);
+      if (!groups) return fail('度分秒格式有誤');
+      if (groups.length === 1 && groups[0].nums.length === 2 && !groups[0].nums[0].mk && !groups[0].nums[1].mk) {
+        groups = [plainGroup([groups[0].nums[0]]), plainGroup([groups[0].nums[1]])];
+      }
+    }
+    if (groups.length !== 2) return fail(groups.length > 2 ? '數值太多，請只貼上一組座標' : '需要緯度與經度兩個數值');
+    var v1 = groupValue(groups[0]), v2 = groupValue(groups[1]);
+    if (isNaN(v1) || isNaN(v2)) return fail('度分秒格式有誤（分、秒須小於 60）');
+    return assign(groups[0], v1, groups[1], v2);
+  }
+
+  function parseURL(text) {
+    var s = text, m, N = '(-?\\d{1,3}(?:\\.\\d+)?)';
+    try { s = decodeURIComponent(text.replace(/\+/g, ' ')); } catch (e) { s = text.replace(/\+/g, ' '); }
+    m = s.match(new RegExp('!3d' + N + '!4d' + N));
+    if (m) return finalize(+m[1], +m[2], 'Google 地圖網址');
+    m = s.match(new RegExp('[?&#](?:q|query|ll|sll|cbll|center|coordinate|destination|daddr|origin|saddr|viewpoint|location)=(?:loc:)?\\s*' + N + '\\s*,\\s*' + N, 'i'));
+    if (m) return finalize(+m[1], +m[2], '網址參數');
+    m = s.match(new RegExp('geo:\\s*' + N + '\\s*,\\s*' + N, 'i'));
+    if (m) return finalize(+m[1], +m[2], 'geo 連結');
+    m = s.match(new RegExp('map=\\d+(?:\\.\\d+)?/' + N + '/' + N));
+    if (m) return finalize(+m[1], +m[2], 'OpenStreetMap 網址');
+    m = s.match(/\/maps\/(?:place|search|dir)\/([^\/@?]+)/);
+    if (m && /°|^\s*-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+\s*$/.test(m[1])) {
+      var r = parsePlain(m[1]);
+      if (r.ok) { r.note = 'Google 地圖網址'; return r; }
+    }
+    m = s.match(new RegExp('@' + N + ',' + N));
+    if (m) return finalize(+m[1], +m[2], '網址的地圖中心點（@），可能與地標略有偏差');
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs|app\.goo\.gl/i.test(s)) {
+      return fail('分享短網址無法直接解析：請改複製座標數字，或在瀏覽器開啟後複製完整網址');
+    }
+    return null;
+  }
+
+  function parse(text) {
+    var raw = toHalf(text == null ? '' : text).trim();
+    if (!raw) return { ok: false, empty: true, error: '' };
+    if (/https?:\/\/|www\.|google\.|goo\.gl|maps\.|geo:/i.test(raw)) {
+      var u = parseURL(raw);
+      if (u) return u;
+    }
+    if (/(^|[^0-9A-Z])[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}(?![0-9A-Z])/i.test(raw)) {
+      return fail('這是 Plus Code，請改複製經緯度數字（例：25.033964, 121.564468）');
+    }
+    return parsePlain(raw);
+  }
+
+  /* ================= 大地計算 ================= */
+
+  function ecef(lat, lon, h) {
+    var p = lat * D2R, l = lon * D2R, sp = Math.sin(p), cp = Math.cos(p);
+    var n = A / Math.sqrt(1 - E2 * sp * sp);
+    return [(n + h) * cp * Math.cos(l), (n + h) * cp * Math.sin(l), (n * (1 - E2) + h) * sp];
+  }
+
+  // 以 o 為原點的區域 東-北-天 (ENU) 向量
+  function enu(o, t) {
+    var p0 = ecef(o.lat, o.lon, o.h), p1 = ecef(t.lat, t.lon, t.h);
+    var dx = p1[0] - p0[0], dy = p1[1] - p0[1], dz = p1[2] - p0[2];
+    var p = o.lat * D2R, l = o.lon * D2R;
+    var sp = Math.sin(p), cp = Math.cos(p), sl = Math.sin(l), cl = Math.cos(l);
+    return {
+      e: -sl * dx + cl * dy,
+      n: -sp * cl * dx - sp * sl * dy + cp * dz,
+      u: cp * cl * dx + cp * sl * dy + sp * dz
+    };
+  }
+
+  // Vincenty 反算（WGS84 橢球大地線距離），近對蹠點不收斂時回傳 ok:false
+  function vincenty(lat1, lon1, lat2, lon2) {
+    if (lat1 === lat2 && lon1 === lon2) return { ok: true, s: 0 };
+    var L = wrapPi((lon2 - lon1) * D2R);
+    var U1 = Math.atan((1 - F) * Math.tan(lat1 * D2R)), U2 = Math.atan((1 - F) * Math.tan(lat2 * D2R));
+    var sinU1 = Math.sin(U1), cosU1 = Math.cos(U1), sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+    var lambda = L, prev, iter = 0, sinS, cosS, sigma, cos2A, cos2Sm;
+    do {
+      var sinL = Math.sin(lambda), cosL = Math.cos(lambda);
+      var t1 = cosU2 * sinL, t2 = cosU1 * sinU2 - sinU1 * cosU2 * cosL;
+      sinS = Math.sqrt(t1 * t1 + t2 * t2);
+      if (sinS === 0) return { ok: true, s: 0 };
+      cosS = sinU1 * sinU2 + cosU1 * cosU2 * cosL;
+      sigma = Math.atan2(sinS, cosS);
+      var sinA = cosU1 * cosU2 * sinL / sinS;
+      cos2A = 1 - sinA * sinA;
+      cos2Sm = cos2A !== 0 ? cosS - 2 * sinU1 * sinU2 / cos2A : 0;
+      var C = F / 16 * cos2A * (4 + F * (4 - 3 * cos2A));
+      prev = lambda;
+      lambda = L + (1 - C) * F * sinA * (sigma + C * sinS * (cos2Sm + C * cosS * (-1 + 2 * cos2Sm * cos2Sm)));
+      if (!isFinite(lambda) || Math.abs(lambda) > 1.5 * Math.PI) return { ok: false };
+    } while (Math.abs(lambda - prev) > 1e-12 && ++iter < 500);
+    if (iter >= 500) return { ok: false };
+    var uSq = cos2A * (A * A - B * B) / (B * B);
+    var Ak = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+    var Bk = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+    var dS = Bk * sinS * (cos2Sm + Bk / 4 * (cosS * (-1 + 2 * cos2Sm * cos2Sm) -
+      Bk / 6 * cos2Sm * (-3 + 4 * sinS * sinS) * (-3 + 4 * cos2Sm * cos2Sm)));
+    return { ok: true, s: B * Ak * (sigma - dS) };
+  }
+
+  function haversine(lat1, lon1, lat2, lon2) {
+    var p1 = lat1 * D2R, p2 = lat2 * D2R, dp = p2 - p1, dl = (lon2 - lon1) * D2R;
+    var h = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    return 2 * R_MEAN * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+
+  // a, b: {lat, lon, h}（h 為總高度 m）；k：大氣折光係數
+  function solve(a, b, k) {
+    k = k || 0;
+    var g = vincenty(a.lat, a.lon, b.lat, b.lon);
+    var hd = g.ok ? g.s : haversine(a.lat, a.lon, b.lat, b.lon);
+    var ab = enu(a, b), ba = enu(b, a);
+    var hab = Math.sqrt(ab.e * ab.e + ab.n * ab.n), hba = Math.sqrt(ba.e * ba.e + ba.n * ba.n);
+    var sd = Math.sqrt(hab * hab + ab.u * ab.u);
+    var same = sd < 1e-6;
+    var refr = k * hd / (2 * R_MEAN) * R2D;
+    var v = same ? NaN : Math.atan2(ab.u, hab) * R2D + refr;
+    var vb = same ? NaN : Math.atan2(ba.u, hba) * R2D + refr;
+    // 視線對平滑地球（等效半徑 R/(1-k)）的最小淨空，負值 = 被地球曲率遮擋（不含地形）
+    var clear = NaN;
+    if (hd > 0 && k < 1) {
+      var Re = R_MEAN / (1 - k), dh = b.h - a.h;
+      var x = Math.min(hd, Math.max(0, hd / 2 - dh * Re / hd));
+      clear = a.h + dh * x / hd - x * (hd - x) / (2 * Re);
+    }
+    return {
+      hd: hd, sd: sd, dh: b.h - a.h,
+      az: hab > 1e-6 ? norm360(Math.atan2(ab.e, ab.n) * R2D) : NaN,
+      v: v, z: 90 - v,
+      azBack: hba > 1e-6 ? norm360(Math.atan2(ba.e, ba.n) * R2D) : NaN,
+      vBack: vb,
+      drop: (1 - k) * hd * hd / (2 * R_MEAN),
+      clear: clear, approx: !g.ok, same: same
+    };
+  }
+
+  /* ================= 格式化 ================= */
+
+  var MINUS = '−';
+
+  function fmt(x, d) {
+    var s = Math.abs(x).toFixed(d);
+    var neg = x < 0 && Number(s) !== 0;
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? MINUS : '') + parts.join('.');
+  }
+
+  function fmtSigned(x, d) {
+    var s = fmt(x, d);
+    return (s.charAt(0) === MINUS || Number(Math.abs(x).toFixed(d)) === 0) ? s : '+' + s;
+  }
+
+  // 方位角：四位小數，進位到 360 時歸零
+  function azDeg(az) {
+    var r = Math.round(az * 1e4) / 1e4;
+    return (r >= 360 ? r - 360 : r).toFixed(4);
+  }
+
+  // 度分秒（秒取一位小數）；wrap=true 時 360° 歸零；signed=true 時正值加「+」
+  function dms(deg, opts) {
+    opts = opts || {};
+    var neg = deg < 0;
+    var t = Math.round(Math.abs(deg) * 36000);
+    if (opts.wrap && t >= 360 * 36000) t -= 360 * 36000;
+    if (t === 0) neg = false;
+    var d = Math.floor(t / 36000), rem = t - d * 36000;
+    var m = Math.floor(rem / 600), s = (rem - m * 600) / 10;
+    var str = d + '°' + (m < 10 ? '0' : '') + m + '′' + (s < 10 ? '0' : '') + s.toFixed(1) + '″';
+    return (neg ? MINUS : (opts.signed && t > 0 ? '+' : '')) + str;
+  }
+
+  var CN16 = ['北', '北北東', '東北', '東北東', '東', '東南東', '東南', '南南東', '南', '南南西', '西南', '西南西', '西', '西北西', '西北', '北北西'];
+  var EN16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+
+  function compass(az) { var i = Math.round(norm360(az) / 22.5) % 16; return { cn: CN16[i], en: EN16[i] }; }
+
+  function quadrant(az) {
+    az = norm360(az);
+    var ns, ew, a;
+    if (az <= 90) { ns = 'N'; ew = 'E'; a = az; }
+    else if (az < 180) { ns = 'S'; ew = 'E'; a = 180 - az; }
+    else if (az <= 270) { ns = 'S'; ew = 'W'; a = az - 180; }
+    else { ns = 'N'; ew = 'W'; a = 360 - az; }
+    return ns + ' ' + dms(a) + ' ' + ew;
+  }
+
+  return {
+    parse: parse, solve: solve, ecef: ecef, enu: enu, vincenty: vincenty, haversine: haversine,
+    norm360: norm360, fmt: fmt, fmtSigned: fmtSigned, azDeg: azDeg, dms: dms, compass: compass,
+    quadrant: quadrant, toHalf: toHalf, R_MEAN: R_MEAN
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
+</script>
+<script>
+(function () {
+  'use strict';
+  var G = GeoCore;
+  function $(id) { return document.getElementById(id); }
+
+  var KEY = 'gps-measure-v3';
+  var EXAMPLE = {
+    A: { c: '25°02\'02.3"N 121°33\'52.1"E', h: '392', n: '範例：台北101' },
+    B: { c: '25°10\'14.2"N 121°33\'12.4"E', h: '1120', n: '範例：七星山主峰' }
+  };
+  var AXES = ['lat', 'lon'];
+  var P = {}, ORDER = [];
+  ['A', 'B'].forEach(function (id) {
+    var p = { id: id, note: '', h: $('h' + id), noteEl: $('note' + id), errEl: $('err' + id), ax: {} };
+    AXES.forEach(function (a) {
+      p.ax[a] = { d: $(a + 'D' + id), m: $(a + 'M' + id), s: $(a + 'S' + id), hemi: $(a + 'H' + id) };
+    });
+    P[id] = p;
+    ORDER.push(p.ax.lat.d, p.ax.lat.m, p.ax.lat.s, p.ax.lon.d, p.ax.lon.m, p.ax.lon.s, p.h);
+  });
+
+  /* ---------- 數值 ---------- */
+  function clean(input) { return G.toHalf(input.value).replace(/[\s,]/g, '').replace(/[−﹣]/g, '-'); }
+  function num(input) {
+    var t = clean(input);
+    return /^-?(\d+\.?\d*|\.\d+)$/.test(t) ? parseFloat(t) : NaN;
+  }
+  function height(p) { var v = num(p.h); return isFinite(v) ? v : 0; }
+
+  // 十進位度 → 度、分、秒（秒取到 0.01″）
+  function parts(v) {
+    var t = Math.round(Math.abs(v) * 360000);
+    var d = Math.floor(t / 360000), r = t - d * 360000, m = Math.floor(r / 6000), s = (r - m * 6000) / 100;
+    return [String(d), String(m), s.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')];
+  }
+  function fillAxis(p, a, dms, hemi) {
+    var x = p.ax[a];
+    x.d.value = dms[0]; x.m.value = dms[1]; x.s.value = dms[2];
+    if (hemi && (a === 'lat' ? /^[NS]$/ : /^[EW]$/).test(hemi)) x.hemi.textContent = hemi;
+  }
+  function fillPoint(p, lat, lon) {
+    fillAxis(p, 'lat', parts(lat), lat < 0 ? 'S' : 'N');
+    fillAxis(p, 'lon', parts(lon), lon < 0 ? 'W' : 'E');
+  }
+
+  function readAxis(p, a) {
+    var x = p.ax[a], max = a === 'lat' ? 90 : 180, bad = { d: false, m: false, s: false }, msg = '';
+    var hasD = !!clean(x.d), hasM = !!clean(x.m), hasS = !!clean(x.s);
+    if (!hasD) {
+      if (hasM || hasS) { bad.d = true; msg = '請填度數'; }
+      return { ok: false, bad: bad, msg: msg };
+    }
+    var d = num(x.d), m = hasM ? num(x.m) : 0, s = hasS ? num(x.s) : 0;
+    if (isNaN(d)) bad.d = true;
+    if (isNaN(m) || m < 0 || m >= 60) bad.m = true;
+    if (isNaN(s) || s < 0 || s >= 60) bad.s = true;
+    if (bad.d || bad.m || bad.s) return { ok: false, bad: bad, msg: bad.d ? '度數格式有誤' : '分、秒須在 0～60 之間' };
+    var v = Math.abs(d) + m / 60 + s / 3600;
+    if (v > max) { bad.d = true; return { ok: false, bad: bad, msg: (a === 'lat' ? '緯度' : '經度') + '不可超過 ' + max + '°' }; }
+    var neg = d < 0 || x.hemi.textContent === (a === 'lat' ? 'S' : 'W');
+    return { ok: true, v: neg ? -v : v, bad: bad };
+  }
+
+  /* ---------- 計算 ---------- */
+  function set(id, html) { $(id).innerHTML = html; }
+  function compute() {
+    var pos = {}, ready = true;
+    ['A', 'B'].forEach(function (id) {
+      var p = P[id], msg = '';
+      AXES.forEach(function (a) {
+        var r = readAxis(p, a), x = p.ax[a];
+        x.d.classList.toggle('bad', r.bad.d); x.m.classList.toggle('bad', r.bad.m); x.s.classList.toggle('bad', r.bad.s);
+        if (!msg && r.msg) msg = r.msg;
+        p[a] = r;
+      });
+      p.errEl.textContent = msg; p.errEl.hidden = !msg;
+      if (p.lat.ok && p.lon.ok) pos[id] = { lat: p.lat.v, lon: p.lon.v, h: height(p) };
+      else ready = false;
+    });
+    if (!ready) {
+      set('outD', '—'); set('outH', '—'); set('outV', '—');
+      lastKm = lastHA = lastHB = NaN; syncFsl(); syncLos(); return;
+    }
+    var s = G.solve(pos.A, pos.B, 0);
+    lastKm = s.sd / 1000; lastHA = pos.A.h; lastHB = pos.B.h;
+    syncFsl(); syncLos();
+    set('outD', G.fmt(s.hd / 1000, 3) + '<small>km</small>');
+    set('outH', isNaN(s.az) ? '—' : G.azDeg(s.az) + '°');
+    set('outV', isNaN(s.v) ? '—' : G.fmtSigned(s.v, 4) + '°');
+  }
+
+  /* ---------- FSL ---------- */
+  var FS = { f: $('fslF'), d: $('fslD'), mhz: $('unitMHz'), ghz: $('unitGHz'), sync: $('fslSync'), note: $('fslNote'), unit: 'GHz', manual: false };
+  var lastKm = NaN;   // A–B 直線距離（km，含高差）
+  function plain(x, n) { return String(+x.toFixed(n)); }
+  function log10(x) { return Math.log(x) / Math.LN10; }
+  function setUnit(u, convert) {
+    if (convert && u !== FS.unit) {
+      var v = num(FS.f);
+      if (isFinite(v)) FS.f.value = plain(u === 'MHz' ? v * 1000 : v / 1000, 6);
+    }
+    FS.unit = u;
+    FS.mhz.setAttribute('aria-pressed', String(u === 'MHz'));
+    FS.ghz.setAttribute('aria-pressed', String(u === 'GHz'));
+  }
+  function computeFsl() {
+    var f = num(FS.f), d = num(FS.d), mhz = FS.unit === 'GHz' ? f * 1000 : f;
+    FS.f.classList.toggle('bad', !!clean(FS.f) && !(f > 0));
+    FS.d.classList.toggle('bad', !!clean(FS.d) && !(d > 0));
+    set('outF', f > 0 && d > 0 ? G.fmt(32.44778 + 20 * log10(mhz) + 20 * log10(d), 2) + '<small>dB</small>' : '—');
+  }
+  function syncFsl() {
+    if (!FS.manual) FS.d.value = isFinite(lastKm) ? plain(lastKm, 3) : '';
+    FS.sync.hidden = !(FS.manual && isFinite(lastKm));
+    FS.note.textContent = FS.manual ? '手動輸入的距離' : isFinite(lastKm) ? 'A–B 直線距離（含高差）' : '尚未輸入 A、B 兩點，可直接填距離';
+    computeFsl();
+  }
+
+  /* ---------- LOS 視距（k = 4/3） ---------- */
+  var LS = { hA: $('losHA'), hB: $('losHB'), sync: $('losSync'), note: $('losNote'), man: { hA: false, hB: false } };
+  var LKEYS = ['hA', 'hB'];
+  var lastHA = NaN, lastHB = NaN;   // 測距測角的兩點高度（m）
+  var RE = 6371000 * 4 / 3;         // 等效地球半徑
+  function syncLos() {
+    var src = { hA: lastHA, hB: lastHB }, anyMan = false;
+    LKEYS.forEach(function (k) {
+      if (LS.man[k]) anyMan = true;
+      else LS[k].value = isFinite(src[k]) ? plain(src[k], 1) : '';
+    });
+    var have = isFinite(lastHA);
+    LS.sync.hidden = !(anyMan && have);
+    LS.note.textContent = anyMan ? '含手動輸入的高度' : have ? '高度取自測距測角' : '尚未輸入 A、B 兩點，可直接填高度';
+    computeLos();
+  }
+  function computeLos() {
+    var ea = !clean(LS.hA), eb = !clean(LS.hB);
+    var hA = ea ? 0 : num(LS.hA), hB = eb ? 0 : num(LS.hB);
+    LS.hA.classList.toggle('bad', !ea && !(hA >= 0));
+    LS.hB.classList.toggle('bad', !eb && !(hB >= 0));
+    if ((ea && eb) || !(hA >= 0) || !(hB >= 0)) { set('losR', '—'); return; }
+    set('losR', G.fmt((Math.sqrt(2 * RE * hA) + Math.sqrt(2 * RE * hB)) / 1000, 1) + '<small>km</small>');
+  }
+
+  /* ---------- 分頁 ---------- */
+  var TABS = { geo: { tab: $('tabGeo'), panel: $('panelGeo') }, fsl: { tab: $('tabFsl'), panel: $('panelFsl') }, los: { tab: $('tabLos'), panel: $('panelLos') } };
+  var curTab = 'geo';
+  function showTab(name) {
+    curTab = TABS[name] ? name : 'geo';
+    Object.keys(TABS).forEach(function (k) {
+      TABS[k].tab.setAttribute('aria-selected', String(k === curTab));
+      TABS[k].panel.hidden = k !== curTab;
+    });
+  }
+
+  /* ---------- 保存 ---------- */
+  var saveT = 0;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(function () {
+      function dump(p) {
+        var o = { h: p.h.value, n: p.note };
+        AXES.forEach(function (a) { var x = p.ax[a]; o[a] = [x.d.value, x.m.value, x.s.value, x.hemi.textContent]; });
+        return o;
+      }
+      var fsl = { f: FS.f.value, unit: FS.unit, d: FS.d.value, manual: FS.manual };
+      var los = { hA: LS.hA.value, hB: LS.hB.value, man: LS.man };
+      try { localStorage.setItem(KEY, JSON.stringify({ A: dump(P.A), B: dump(P.B), fsl: fsl, los: los, tab: curTab })); } catch (e) { /* 無痕模式等 */ }
+    }, 250);
+  }
+  function load(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } }
+
+  function setNote(p, n) { p.note = n || ''; p.noteEl.textContent = p.note; }
+
+  function init() {
+    var d = load(KEY);
+    if (d && d.A && d.B) {
+      ['A', 'B'].forEach(function (id) {
+        var p = P[id], s = d[id];
+        AXES.forEach(function (a) { if (s[a]) fillAxis(p, a, [s[a][0] || '', s[a][1] || '', s[a][2] || ''], s[a][3]); });
+        p.h.value = s.h || ''; setNote(p, s.n);
+      });
+      return;
+    }
+    // 舊版（單一座標欄）或第一次使用：用座標文字換算成度分秒
+    var src = null, v2 = load('gps-measure-v2'), v1 = load('gps-measure-v1');
+    if (v2 && v2.A && v2.B) src = v2;
+    else if (v1 && v1.A && v1.B) {
+      var conv = function (o) {
+        var e = parseFloat(o.e), g = parseFloat(o.g), h = (isFinite(e) ? e : 0) + (isFinite(g) ? g : 0);
+        return { c: o.c || '', h: (o.e || o.g) ? String(Math.round(h * 10) / 10) : '', n: o.label ? String(o.label).replace(/（.*$/, '') : '' };
+      };
+      src = { A: conv(v1.A), B: conv(v1.B) };
+    } else src = EXAMPLE;
+    ['A', 'B'].forEach(function (id) {
+      var p = P[id], s = src[id] || {}, r = G.parse(s.c || '');
+      if (r.ok) fillPoint(p, r.lat, r.lon);
+      p.h.value = s.h || ''; setNote(p, s.n);
+    });
+  }
+
+  /* ---------- 輸入行為 ---------- */
+  // 單一軸的度分秒（如 25 02 02.3 或 25°02'02.3"N）貼到該列
+  function axisPaste(t) {
+    t = G.toHalf(t).toUpperCase();
+    var nums = t.match(/\d+(?:\.\d+)?/g);
+    if (!nums || nums.length < 2 || nums.length > 3) return null;
+    var h = t.match(/[NSEW]/);
+    return { dms: [String(+nums[0]), String(+nums[1]), String(+(nums[2] || 0))], hemi: h ? h[0] : '' };
+  }
+  function edited(p) { if (p.note) setNote(p, ''); compute(); save(); }
+
+  ['A', 'B'].forEach(function (id) {
+    var p = P[id];
+    AXES.forEach(function (a) {
+      var x = p.ax[a];
+      x.hemi.addEventListener('click', function () {
+        var c = x.hemi.textContent;
+        x.hemi.textContent = a === 'lat' ? (c === 'N' ? 'S' : 'N') : (c === 'E' ? 'W' : 'E');
+        edited(p);
+      });
+      [x.d, x.m, x.s].forEach(function (box) {
+        box.addEventListener('paste', function (e) {
+          var t = e.clipboardData && e.clipboardData.getData('text');
+          if (!t) return;
+          var r = G.parse(t);
+          if (r.ok) { e.preventDefault(); fillPoint(p, r.lat, r.lon); edited(p); return; }
+          var q = axisPaste(t);
+          if (q) { e.preventDefault(); fillAxis(p, a, q.dms, q.hemi); edited(p); }
+        });
+      });
+    });
+    p.h.addEventListener('paste', function (e) {
+      var t = e.clipboardData && e.clipboardData.getData('text'), r = t ? G.parse(t) : null;
+      if (r && r.ok) { e.preventDefault(); fillPoint(p, r.lat, r.lon); edited(p); }
+    });
+  });
+
+  // 點進格子就全選，直接打字即覆蓋舊值（擋掉放開滑鼠時取消選取的預設行為）
+  function autoSelect(el) {
+    var justFocused = false;
+    el.addEventListener('focus', function () {
+      justFocused = true;
+      try { el.setSelectionRange(0, el.value.length); } catch (e) { el.select(); }
+    });
+    el.addEventListener('mouseup', function (e) { if (justFocused) { e.preventDefault(); justFocused = false; } });
+    el.addEventListener('blur', function () { justFocused = false; });
+  }
+
+  ORDER.forEach(function (el, i) {
+    var p = P[i < 7 ? 'A' : 'B'];
+    el.addEventListener('input', function () { edited(p); });
+    autoSelect(el);
+    // 空白、度分秒符號、Enter → 跳到下一格
+    el.addEventListener('keydown', function (e) {
+      if (['Enter', ' ', '°', "'", '"', '′', '″'].indexOf(e.key) < 0) return;
+      e.preventDefault();
+      var next = ORDER[i + 1];
+      if (next) next.focus(); else el.blur();
+    });
+  });
+
+  var saved = load(KEY);
+  if (saved && saved.fsl) {
+    FS.f.value = saved.fsl.f || '';
+    setUnit(saved.fsl.unit === 'MHz' ? 'MHz' : 'GHz');
+    FS.manual = !!saved.fsl.manual;
+    if (FS.manual) FS.d.value = saved.fsl.d || '';
+  } else { FS.f.value = '5.8'; setUnit('GHz'); }
+  if (saved && saved.los && saved.los.man) {
+    LKEYS.forEach(function (k) { LS.man[k] = !!saved.los.man[k]; if (LS.man[k]) LS[k].value = saved.los[k] || ''; });
+  }
+  showTab(saved && saved.tab);
+
+  TABS.geo.tab.addEventListener('click', function () { showTab('geo'); save(); });
+  TABS.fsl.tab.addEventListener('click', function () { showTab('fsl'); save(); });
+  TABS.los.tab.addEventListener('click', function () { showTab('los'); save(); });
+  FS.mhz.addEventListener('click', function () { setUnit('MHz', true); computeFsl(); save(); });
+  FS.ghz.addEventListener('click', function () { setUnit('GHz', true); computeFsl(); save(); });
+  FS.f.addEventListener('input', function () { computeFsl(); save(); });
+  LKEYS.forEach(function (k) {
+    LS[k].addEventListener('input', function () { LS.man[k] = true; syncLos(); save(); });
+  });
+  LS.sync.addEventListener('click', function () { LS.man = { hA: false, hB: false }; syncLos(); save(); });
+  var LOS_ORDER = [LS.hA, LS.hB];
+  LOS_ORDER.forEach(function (el, i) {
+    autoSelect(el);
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (LOS_ORDER[i + 1]) LOS_ORDER[i + 1].focus(); else el.blur();
+    });
+  });
+  FS.d.addEventListener('input', function () { FS.manual = true; syncFsl(); save(); });
+  FS.sync.addEventListener('click', function () { FS.manual = false; syncFsl(); save(); });
+  [FS.f, FS.d].forEach(function (el) {
+    autoSelect(el);
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (el === FS.f) FS.d.focus(); else el.blur();
+    });
+  });
+
+  init();
+  compute();
+})();
+</script>
+</body>
+</html>
