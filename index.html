@@ -9,10 +9,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="工具">
-<meta name="description" content="兩點距離角度、自由空間路徑損耗(FSL)、射頻視距(LOS) 計算。">
+<meta name="description" content="兩點距離角度、自由空間路徑損耗(FSL)、射頻視距(LOS)、dBm／W 轉換。">
 <meta property="og:type" content="website">
 <meta property="og:title" content="工具">
-<meta property="og:description" content="兩點距離角度、自由空間路徑損耗(FSL)、射頻視距(LOS) 計算。">
+<meta property="og:description" content="兩點距離角度、自由空間路徑損耗(FSL)、射頻視距(LOS)、dBm／W 轉換。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2040%2040%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2218%22%20fill%3D%22%230B6B4E%22/%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2210.5%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.8%22/%3E%3Cpath%20d%3D%22M20%205.5v8M20%2026.5v8M5.5%2020h8M26.5%2020h8%22%20stroke%3D%22%23fff%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22/%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%222%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
 <title>工具</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,7 +84,7 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
 .big{font:600 25px/1.15 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
 .big small{margin-left:5px;font:500 13px/1 var(--ui);letter-spacing:0;color:var(--muted)}
 
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin:12px 0;border-radius:12px;background:var(--seg)}
+.tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:4px;margin:12px 0;border-radius:12px;background:var(--seg)}
 .tab{min-height:40px;padding:6px 4px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:14px;font-weight:600;line-height:1.25;word-break:keep-all;overflow-wrap:break-word;cursor:pointer}
 .tab[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .tab:focus-visible,.seg button:focus-visible,.sync:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -125,6 +125,7 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
     <button type="button" class="tab" role="tab" id="tabGeo" aria-controls="panelGeo" aria-selected="true">兩點距離<wbr>角度</button>
     <button type="button" class="tab" role="tab" id="tabFsl" aria-controls="panelFsl" aria-selected="false">自由空間<wbr>路徑損耗<wbr>(FSL)</button>
     <button type="button" class="tab" role="tab" id="tabLos" aria-controls="panelLos" aria-selected="false">射頻視距<wbr>(LOS)</button>
+    <button type="button" class="tab" role="tab" id="tabPow" aria-controls="panelPow" aria-selected="false">dBm／W<wbr> 轉換</button>
   </div>
 
   <div id="panelGeo" role="tabpanel" aria-labelledby="tabGeo">
@@ -272,6 +273,34 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
     <div class="fx">
       <div class="fx-t">公式</div>
       <div class="fx-i"><p>視距 = 4.12 × (√h₁ + √h₂)</p><p class="fx-n">視距單位 km；h₁、h₂ 為兩點高度（m）；等效地球半徑 k = 4/3</p></div>
+    </div>
+  </div>
+
+  <div id="panelPow" role="tabpanel" aria-labelledby="tabPow" hidden>
+    <p class="hint">dBm 與功率互相換算，在任一格輸入，另一格會自動算出。</p>
+    <div class="card">
+      <section class="pt">
+        <div class="fr">
+          <label class="ax" for="powDbm">dBm</label>
+          <div class="hw"><input class="in" id="powDbm" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="0"><span class="u">dBm</span></div>
+          <span></span>
+        </div>
+        <div class="fr">
+          <label class="ax" for="powW">功率</label>
+          <input class="in in-l" id="powW" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="0">
+          <div class="seg" role="group" aria-label="功率單位">
+            <button type="button" id="unitW" aria-pressed="true">W</button>
+            <button type="button" id="unitMW" aria-pressed="false">mW</button>
+          </div>
+        </div>
+        <p class="sub" id="powNote"></p>
+      </section>
+    </div>
+    <div class="fx">
+      <div class="fx-t">公式</div>
+      <div class="fx-i"><p>dBm = 10 × log₁₀(P ÷ 1 mW)</p><p class="fx-n">P 用 W：dBm = 10 × log₁₀(P) + 30；P 用 mW：dBm = 10 × log₁₀(P)</p></div>
+      <div class="fx-i"><p>P(W) = 10^((dBm − 30) ÷ 10)</p><p class="fx-n">每加 3 dB 功率約變 2 倍，每加 10 dB 變 10 倍</p></div>
+      <div class="fx-w" id="wPow" hidden></div>
     </div>
   </div>
 </div>
@@ -887,8 +916,55 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
     set('losR', G.fmt((Math.sqrt(2 * RE * hA) + Math.sqrt(2 * RE * hB)) / 1000, 1) + '<small>km</small>');
   }
 
+  /* ---------- dBm／W 轉換 ---------- */
+  var PW = { dbm: $('powDbm'), w: $('powW'), bW: $('unitW'), bMW: $('unitMW'), note: $('powNote'), unit: 'W', last: 'dbm' };
+  // 有效數字 n 位的一般小數字串（不用科學記號）
+  function sig(x, n) {
+    if (!isFinite(x)) return '';
+    if (x === 0) return '0';
+    var ax = Math.abs(x);
+    if (ax < 1e-15 || ax >= 1e15) return x.toPrecision(n);
+    var t = x.toFixed(Math.min(20, Math.max(0, n - 1 - Math.floor(log10(ax)))));
+    return t.indexOf('.') < 0 ? t : t.replace(/0+$/, '').replace(/\.$/, '');
+  }
+  function si(pW) {
+    var U = [['MW', 1e6], ['kW', 1e3], ['W', 1], ['mW', 1e-3], ['µW', 1e-6], ['nW', 1e-9], ['pW', 1e-12], ['fW', 1e-15]];
+    for (var i = 0; i < U.length; i++) if (pW >= U[i][1] || i === U.length - 1) return sig(pW / U[i][1], 4) + ' ' + U[i][0];
+  }
+  function setPowUnit(u) {
+    PW.unit = u;
+    PW.bW.setAttribute('aria-pressed', String(u === 'W'));
+    PW.bMW.setAttribute('aria-pressed', String(u === 'mW'));
+  }
+  function showPow(d, pW) {
+    var ok = isFinite(d) && pW > 0, w = $('wPow');
+    if (!ok) { PW.note.textContent = ''; w.hidden = true; return; }
+    var s = si(pW), su = s.split(' ')[1], dd = plain(d, 2).replace('-', '−');
+    PW.note.textContent = su !== PW.unit ? '＝ ' + s : '';   // 只在單位不同時提示（例如 0.000001 W ＝ 1 µW）
+    if (PW.last === 'dbm') wLines(w, ['P = 10^((' + dd + ' − 30) ÷ 10) = ' + sig(pW, 6) + ' W' + (su !== 'W' ? '（' + s + '）' : '')]);
+    else if (PW.unit === 'W') wLines(w, ['dBm = 10 × log₁₀(' + sig(pW, 6) + ') + 30 = ' + dd + ' dBm']);
+    else wLines(w, ['dBm = 10 × log₁₀(' + sig(pW * 1000, 6) + ') = ' + dd + ' dBm']);
+  }
+  function powFromDbm() {
+    var d = num(PW.dbm), has = !!clean(PW.dbm);
+    PW.dbm.classList.toggle('bad', has && isNaN(d)); PW.w.classList.remove('bad');
+    if (isNaN(d)) { PW.w.value = ''; showPow(NaN, NaN); return; }
+    var pW = Math.pow(10, (d - 30) / 10);
+    PW.w.value = sig(PW.unit === 'W' ? pW : pW * 1000, 6);
+    showPow(d, pW);
+  }
+  function powFromW() {
+    var v = num(PW.w), has = !!clean(PW.w);
+    PW.w.classList.toggle('bad', has && !(v > 0)); PW.dbm.classList.remove('bad');
+    if (!(v > 0)) { PW.dbm.value = ''; showPow(NaN, NaN); return; }
+    var pW = PW.unit === 'W' ? v : v / 1000, d = 10 * log10(pW) + 30;
+    PW.dbm.value = plain(d, 2);
+    showPow(d, pW);
+  }
+  function refreshPow() { if (PW.last === 'dbm') powFromDbm(); else powFromW(); }
+
   /* ---------- 分頁 ---------- */
-  var TABS = { geo: { tab: $('tabGeo'), panel: $('panelGeo') }, fsl: { tab: $('tabFsl'), panel: $('panelFsl') }, los: { tab: $('tabLos'), panel: $('panelLos') } };
+  var TABS = { geo: { tab: $('tabGeo'), panel: $('panelGeo') }, fsl: { tab: $('tabFsl'), panel: $('panelFsl') }, los: { tab: $('tabLos'), panel: $('panelLos') }, pow: { tab: $('tabPow'), panel: $('panelPow') } };
   var curTab = 'geo';
   function showTab(name) {
     curTab = TABS[name] ? name : 'geo';
@@ -910,7 +986,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
       }
       var fsl = { f: FS.f.value, unit: FS.unit, d: FS.d.value, manual: FS.manual };
       var los = { hA: LS.hA.value, hB: LS.hB.value, man: LS.man };
-      try { localStorage.setItem(KEY, JSON.stringify({ A: dump(P.A), B: dump(P.B), fsl: fsl, los: los, tab: curTab })); } catch (e) { /* 無痕模式等 */ }
+      var pow = { dbm: PW.dbm.value, w: PW.w.value, unit: PW.unit, last: PW.last };
+      try { localStorage.setItem(KEY, JSON.stringify({ A: dump(P.A), B: dump(P.B), fsl: fsl, los: los, pow: pow, tab: curTab })); } catch (e) { /* 無痕模式等 */ }
     }, 250);
   }
   function load(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } }
@@ -1015,11 +1092,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
   if (saved && saved.los && saved.los.man) {
     LKEYS.forEach(function (k) { LS.man[k] = !!saved.los.man[k]; if (LS.man[k]) LS[k].value = saved.los[k] || ''; });
   }
+  if (saved && saved.pow) {
+    setPowUnit(saved.pow.unit === 'mW' ? 'mW' : 'W');
+    PW.last = saved.pow.last === 'w' ? 'w' : 'dbm';
+    PW.dbm.value = saved.pow.dbm || ''; PW.w.value = saved.pow.w || '';
+  } else { PW.dbm.value = '30'; setPowUnit('W'); }
+  refreshPow();
   showTab(saved && saved.tab);
 
   TABS.geo.tab.addEventListener('click', function () { showTab('geo'); save(); });
   TABS.fsl.tab.addEventListener('click', function () { showTab('fsl'); save(); });
   TABS.los.tab.addEventListener('click', function () { showTab('los'); save(); });
+  TABS.pow.tab.addEventListener('click', function () { showTab('pow'); save(); });
+  PW.dbm.addEventListener('input', function () { PW.last = 'dbm'; powFromDbm(); save(); });
+  PW.w.addEventListener('input', function () { PW.last = 'w'; powFromW(); save(); });
+  [['W', PW.bW], ['mW', PW.bMW]].forEach(function (u) {
+    u[1].addEventListener('click', function () {
+      var v = num(PW.w);
+      if (v > 0 && u[0] !== PW.unit) PW.w.value = sig(u[0] === 'mW' ? v * 1000 : v / 1000, 6);
+      setPowUnit(u[0]); refreshPow(); save();
+    });
+  });
+  [PW.dbm, PW.w].forEach(function (el) {
+    autoSelect(el);
+    el.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (el === PW.dbm) PW.w.focus(); else el.blur();
+    });
+  });
   FS.mhz.addEventListener('click', function () { setUnit('MHz', true); computeFsl(); save(); });
   FS.ghz.addEventListener('click', function () { setUnit('GHz', true); computeFsl(); save(); });
   FS.f.addEventListener('input', function () { computeFsl(); save(); });
