@@ -95,7 +95,17 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
 .seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .sync{min-height:38px;padding:0 12px;border:1px solid var(--field-rule);border-radius:9px;background:var(--field);color:var(--accent);font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
 .sub{margin:0;font-size:12.5px;line-height:1.4;color:var(--muted)}
-.formula{margin:10px 2px 0;font:400 12.5px/1.5 var(--mono);color:var(--faint)}
+.fx{margin:14px 2px 0;display:grid;gap:12px}
+.fx-i{display:grid;gap:2px}
+.fx-h{margin:0;font-size:14px;font-weight:700;color:var(--accent)}
+.fx sub{font-size:.7em}
+.fx-t{font-size:13px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+.fx p{margin:0;font-size:15.5px;line-height:1.55;color:var(--ink)}
+.fx p.fx-n{font-size:13.5px;color:var(--muted)}
+.fx-w{display:grid;gap:3px;margin-top:6px;padding:9px 11px;border-radius:10px;background:var(--res);border:1px solid var(--res-rule)}
+.fx-w p{margin:0;font-size:14px;line-height:1.5;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.fx-w p.fx-wt{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent)}
+.fx-w p.fx-ws{margin-top:4px;font-weight:700}
 .note-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fld{display:grid;gap:4px}
@@ -173,6 +183,47 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
       <div class="r"><span class="r-k">仰角</span><div class="big" id="outV">—</div></div>
     </section>
   </div>
+  <div class="fx">
+    <div class="fx-t">公式（計算步驟）</div>
+    <p class="fx-n" id="wHint"></p>
+    <div class="fx-i">
+      <p class="fx-h">① 度分秒換成十進位</p>
+      <p>十進位度 = 度 + 分 ÷ 60 + 秒 ÷ 3600</p>
+      <div class="fx-w" id="w1" hidden></div>
+    </div>
+    <div class="fx-i">
+      <p class="fx-h">② 水平距離</p>
+      <p>在 WGS84 地球橢球面上，用 Vincenty 公式反覆計算兩點沿地表的最短距離</p>
+      <p class="fx-n">精度約 0.5 mm；距離短時約等於下面的平距</p>
+      <div class="fx-w" id="w2" hidden></div>
+    </div>
+    <div class="fx-i">
+      <p class="fx-h">③ 換成地心座標 X、Y、Z（A、B 各算一次）</p>
+      <p>R = a ÷ √(1 − e²·sin²φ)</p>
+      <p>X = (R + h)·cosφ·cosλ</p>
+      <p>Y = (R + h)·cosφ·sinλ</p>
+      <p>Z = (R·(1 − e²) + h)·sinφ</p>
+      <p class="fx-n">φ 緯度、λ 經度、h 高度；a = 6,378,137 m（赤道半徑），e² = 0.00669438（地球扁平程度），R 是該緯度的地球曲率半徑</p>
+      <div class="fx-w" id="w3" hidden></div>
+    </div>
+    <div class="fx-i">
+      <p class="fx-h">④ 換成從 A 點看出去的東距、北距、上下距</p>
+      <p>ΔX = X<sub>B</sub> − X<sub>A</sub>（ΔY、ΔZ 同理）</p>
+      <p>東距 = −sinλ·ΔX + cosλ·ΔY</p>
+      <p>北距 = −sinφ·cosλ·ΔX − sinφ·sinλ·ΔY + cosφ·ΔZ</p>
+      <p>上下距 = cosφ·cosλ·ΔX + cosφ·sinλ·ΔY + sinφ·ΔZ</p>
+      <p class="fx-n">這一步的 φ、λ 用 A 點的緯度、經度</p>
+      <div class="fx-w" id="w4" hidden></div>
+    </div>
+    <div class="fx-i">
+      <p class="fx-h">⑤ 水平角與仰角</p>
+      <p>平距 = √(東距² + 北距²)</p>
+      <p>水平角 = atan2(東距, 北距)，負值加 360°</p>
+      <p>仰角 = atan2(上下距, 平距)</p>
+      <p class="fx-n">水平角從正北順時針量：北 0°、東 90°、南 180°、西 270°。仰角 ＋ 是抬頭、− 是低頭；上下距已含地球弧度，例如兩點同高、相距 10 km 時，B 會比 A 的水平面低約 7.8 m</p>
+      <div class="fx-w" id="w5" hidden></div>
+    </div>
+  </div>
   </div>
 
   <div id="panelFsl" role="tabpanel" aria-labelledby="tabFsl" hidden>
@@ -198,7 +249,10 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
         <div class="r"><span class="r-k">FSL</span><div class="big" id="outF">—</div></div>
       </section>
     </div>
-    <p class="formula">FSL = 32.45 + 20log₁₀f(MHz) + 20log₁₀d(km)</p>
+    <div class="fx">
+      <div class="fx-t">公式</div>
+      <div class="fx-i"><p>FSL = 32.45 + 20 log₁₀(f) + 20 log₁₀(d)</p><p class="fx-n">FSL 單位 dB；f 為頻率（MHz），d 為距離（km）</p></div>
+    </div>
   </div>
 
   <div id="panelLos" role="tabpanel" aria-labelledby="tabLos" hidden>
@@ -215,7 +269,10 @@ h1{margin:0;font:700 22px/1.2 var(--ui);letter-spacing:.03em}
         <div class="r"><span class="r-k">視距</span><div class="big" id="losR">—</div></div>
       </section>
     </div>
-    <p class="formula">視距 = 4.12(√h₁+√h₂) km（h 單位 m）</p>
+    <div class="fx">
+      <div class="fx-t">公式</div>
+      <div class="fx-i"><p>視距 = 4.12 × (√h₁ + √h₂)</p><p class="fx-n">視距單位 km；h₁、h₂ 為兩點高度（m）；等效地球半徑 k = 4/3</p></div>
+    </div>
   </div>
 </div>
 
@@ -682,7 +739,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
     });
     if (!ready) {
       set('outD', '—'); set('outH', '—'); set('outV', '—');
-      lastKm = lastHA = lastHB = NaN; syncFsl(); syncLos(); return;
+      lastKm = lastHA = lastHB = NaN; syncFsl(); syncLos(); renderWork(null); return;
     }
     var s = G.solve(pos.A, pos.B, 0);
     lastKm = s.sd / 1000; lastHA = pos.A.h; lastHB = pos.B.h;
@@ -690,6 +747,92 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GeoCore;
     set('outD', G.fmt(s.hd / 1000, 3) + '<small>km</small>');
     set('outH', isNaN(s.az) ? '—' : G.azDeg(s.az) + '°');
     set('outV', isNaN(s.v) ? '—' : G.fmtSigned(s.v, 4) + '°');
+    renderWork(pos, s);
+  }
+
+  /* ---------- 代入計算（兩點距離角度的公式區） ---------- */
+  var D2R = Math.PI / 180, WA = 6378137, WE2 = 0.0066943799901413165;
+  function wLines(el, rows) {
+    el.innerHTML = '';
+    var t = document.createElement('p'); t.className = 'fx-wt'; t.textContent = '代入'; el.appendChild(t);
+    rows.forEach(function (r) {
+      var q = document.createElement('p');
+      if (r.charAt(0) === '§') { q.className = 'fx-ws'; r = r.slice(1); }
+      q.textContent = r; el.appendChild(q);
+    });
+    el.hidden = false;
+  }
+  function renderWork(pos, s) {
+    var W = [1, 2, 3, 4, 5].map(function (i) { return $('w' + i); });
+    if (!pos) {
+      W.forEach(function (w) { w.hidden = true; });
+      $('wHint').textContent = '輸入 A、B 座標後，底色框會代入數值逐步計算';
+      return;
+    }
+    $('wHint').textContent = '底色框：用上面 A、B 的數值實際代入計算';
+    var F = G.fmt;
+    function n(x, d) { return F(x, d); }
+    function pn(x, d) { var t = F(x, d); return x < 0 ? '(' + t + ')' : t; }
+    function dg(x) { return F(x, 6) + '°'; }
+
+    // ① 度分秒 → 十進位
+    var r1 = [];
+    ['A', 'B'].forEach(function (id) {
+      AXES.forEach(function (ax) {
+        var x = P[id].ax[ax], v = pos[id][ax];
+        var expr = String(Math.abs(num(x.d))) + ' + ' + (clean(x.m) ? String(num(x.m)) : '0') + ' ÷ 60 + ' +
+          (clean(x.s) ? String(num(x.s)) : '0') + ' ÷ 3600';
+        r1.push(id + ' ' + (ax === 'lat' ? '緯度' : '經度') + ' = ' + (v < 0 ? '−(' + expr + ')' : expr) + ' = ' + dg(v));
+      });
+    });
+    wLines(W[0], r1);
+
+    // ② 水平距離
+    wLines(W[1], ['A–B 水平距離 = ' + n(s.hd, 2) + ' m = ' + n(s.hd / 1000, 3) + ' km']);
+
+    // ③ 地心座標
+    var r3 = [], C = {}, XYZ = {};
+    ['A', 'B'].forEach(function (id) {
+      var q = pos[id], hs = plain(q.h, 2);
+      var c = { sp: Math.sin(q.lat * D2R), cp: Math.cos(q.lat * D2R), sl: Math.sin(q.lon * D2R), cl: Math.cos(q.lon * D2R) };
+      var R = WA / Math.sqrt(1 - WE2 * c.sp * c.sp), xyz = G.ecef(q.lat, q.lon, q.h);
+      C[id] = c; XYZ[id] = xyz;
+      r3.push('§' + id + ' 點：φ = ' + dg(q.lat) + '，λ = ' + dg(q.lon) + '，h = ' + hs + ' m');
+      r3.push('sinφ = ' + n(c.sp, 6) + '，cosφ = ' + n(c.cp, 6) + '，sinλ = ' + n(c.sl, 6) + '，cosλ = ' + n(c.cl, 6));
+      r3.push('R = 6,378,137 ÷ √(1 − 0.00669438 × ' + pn(c.sp, 6) + '²) = ' + n(R, 2) + ' m');
+      r3.push('X = (' + n(R, 2) + ' + ' + hs + ') × ' + pn(c.cp, 6) + ' × ' + pn(c.cl, 6) + ' = ' + n(xyz[0], 2) + ' m');
+      r3.push('Y = (' + n(R, 2) + ' + ' + hs + ') × ' + pn(c.cp, 6) + ' × ' + pn(c.sl, 6) + ' = ' + n(xyz[1], 2) + ' m');
+      r3.push('Z = (' + n(R, 2) + ' × 0.99330562 + ' + hs + ') × ' + pn(c.sp, 6) + ' = ' + n(xyz[2], 2) + ' m');
+    });
+    wLines(W[2], r3);
+
+    // ④ 東距、北距、上下距（用 A 點的 φ、λ）
+    var a = XYZ.A, b = XYZ.B, c = C.A, dX = b[0] - a[0], dY = b[1] - a[1], dZ = b[2] - a[2];
+    var v = G.enu(pos.A, pos.B);
+    wLines(W[3], [
+      'ΔX = ' + n(b[0], 2) + ' − ' + pn(a[0], 2) + ' = ' + n(dX, 2) + ' m',
+      'ΔY = ' + n(b[1], 2) + ' − ' + pn(a[1], 2) + ' = ' + n(dY, 2) + ' m',
+      'ΔZ = ' + n(b[2], 2) + ' − ' + pn(a[2], 2) + ' = ' + n(dZ, 2) + ' m',
+      '東距 = −' + pn(c.sl, 6) + ' × ' + pn(dX, 2) + ' + ' + pn(c.cl, 6) + ' × ' + pn(dY, 2) + ' = ' + n(v.e, 2) + ' m',
+      '北距 = −' + pn(c.sp, 6) + ' × ' + pn(c.cl, 6) + ' × ' + pn(dX, 2) + ' − ' + pn(c.sp, 6) + ' × ' + pn(c.sl, 6) + ' × ' +
+        pn(dY, 2) + ' + ' + pn(c.cp, 6) + ' × ' + pn(dZ, 2) + ' = ' + n(v.n, 2) + ' m',
+      '上下距 = ' + pn(c.cp, 6) + ' × ' + pn(c.cl, 6) + ' × ' + pn(dX, 2) + ' + ' + pn(c.cp, 6) + ' × ' + pn(c.sl, 6) + ' × ' +
+        pn(dY, 2) + ' + ' + pn(c.sp, 6) + ' × ' + pn(dZ, 2) + ' = ' + n(v.u, 2) + ' m'
+    ]);
+
+    // ⑤ 水平角、仰角
+    var hz = Math.sqrt(v.e * v.e + v.n * v.n), r5 = ['平距 = √(' + pn(v.e, 2) + '² + ' + pn(v.n, 2) + '²) = ' + n(hz, 2) + ' m'];
+    if (s.same) r5.push('兩點位置相同，無法計算角度');
+    else {
+      if (hz < 1e-6) r5.push('兩點水平位置相同，水平角無法定義');
+      else {
+        var raw = Math.atan2(v.e, v.n) / D2R;
+        r5.push('水平角 = atan2(' + n(v.e, 2) + ', ' + n(v.n, 2) + ') = ' + F(raw, 4) + '°' +
+          (raw < 0 ? '，加 360° = ' + G.azDeg(raw + 360) + '°' : ''));
+      }
+      r5.push('仰角 = atan2(' + n(v.u, 2) + ', ' + n(hz, 2) + ') = ' + G.fmtSigned(Math.atan2(v.u, hz) / D2R, 4) + '°');
+    }
+    wLines(W[4], r5);
   }
 
   /* ---------- FSL ---------- */
